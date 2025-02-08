@@ -4,8 +4,9 @@ import logging
 import random
 
 
-from simulation.boids.boids import BoidFlock, BoidRule, SimpleSeparationRule, AvoidWallsRule, AlignmentRule, CohesionRule, \
-    AvoidObstaclesRule, NoiseRule, AttractionRule
+from simulation.boids.boids import BoidFlock, BoidRule, SimpleSeparationRule, AvoidWallsRule, AlignmentRule, \
+    CohesionRule, \
+    AvoidObstaclesRule, NoiseRule, AttractionRule, SideBySideFormationRule, AntiCollisionRule
 from simulation.config.game_settings import GameSettings
 from simulation.obstacles.obstacle import *
 import sys
@@ -38,8 +39,8 @@ def parameter_selection_screen():
         "boid_radius": 50,
         "boid_max_speed": 100,
         "simulation_time": 40,
-        "rows" : 30,
-        "columns" : 30
+        "rows" : 0,
+        "columns" : 0
     }
 
     input_boxes = {
@@ -242,7 +243,7 @@ def main():
             return obstacles
 
         obstacles = generate_circle_obstacles(
-            game_settings.map_width, game_settings.map_height, num_obstacles=70, min_radius=10, max_radius=20, color=(119, 49, 9)
+            game_settings.map_width, game_settings.map_height, num_obstacles=20, min_radius=10, max_radius=20, color=(119, 49, 9)
         )
 
         
@@ -259,15 +260,15 @@ def main():
 
         flock = BoidFlock(game_settings)
         flock_rules: List[BoidRule] = [
-            CohesionRule(weighting=0.4, game_settings=game_settings),
-            AlignmentRule(weighting=0.4, game_settings=game_settings),
+            # CohesionRule(weighting=0.1, game_settings=game_settings),
+            AlignmentRule(weighting=1, game_settings=game_settings),
+            SimpleSeparationRule(weighting=0.2, game_settings=game_settings, push_force=boid_fear),
             AvoidWallsRule(weighting=1.5, game_settings=game_settings, push_force=100),
-            SimpleSeparationRule(weighting=0.9, game_settings=game_settings, push_force=boid_fear),
             # SideBySideFormationRule(weighting=0.3, game_settings=game_settings, spacing=50, noise_factor=0.1),
             AvoidObstaclesRule(weighting=1.5, game_settings=game_settings, obstacles=obstacles, push_force=100),
-            NoiseRule(weighting=0.1, game_settings=game_settings),
+            NoiseRule(weighting=0.2, game_settings=game_settings),
             # AntiCollisionRule(weighting=0.7, game_settings=game_settings)
-            AttractionRule(weighting=0.3, game_settings=game_settings, sim_map=sim_map)
+            # AttractionRule(weighting=1, game_settings=game_settings, sim_map=sim_map)
         ]
 
         def generate_positions_in_sector(n_boids, win, obstacles):
@@ -297,6 +298,7 @@ def main():
         positions = generate_positions_in_sector(n_boids, win, obstacles)
 
         flock.generate_boids(n_boids, positions, rules=flock_rules, local_radius=boid_radius, max_velocity=boid_max_speed)
+        # flock.generate_boids(n_boids, rules=flock_rules, local_radius=boid_radius, max_velocity=boid_max_speed)
         
         entities = flock.boids
         tick_length = int(1000/game_settings.ticks_per_second)

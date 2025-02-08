@@ -2,7 +2,7 @@ import random
 from abc import ABC, abstractmethod
 from typing import List
 import logging
-
+import pygame.gfxdraw
 import numpy as np
 import pygame
 
@@ -35,25 +35,52 @@ class BoidFlock:
     def boids(self):
         return self._boids
 
+    # def get_local_boids(self, boid: Entity):
+    #     print(boid._v)
+    #     return [other_boid for other_boid in self.boids
+    #             if boid != other_boid and
+    #             np.linalg.norm(boid.pos - other_boid.pos) < boid.local_radius]
+
     def get_local_boids(self, boid: Entity):
-        def is_within_side_view(target):
-            # Wektor od boida do celu
-            vector_to_target = target.pos - boid.pos
-            # Normalizacja wektorów
-            vector_to_target_normalized = vector_to_target / np.linalg.norm(vector_to_target)
-            boid_direction_normalized = boid.v / np.linalg.norm(boid.v) if np.linalg.norm(boid.v) > 0 else np.array([1, 0])
+        """Zwraca boidy znajdujące się w prostokątnym obszarze wokół boida.
 
-            # Kąt między wektorem prędkości boida a wektorem do celu
-            dot_product = np.dot(vector_to_target_normalized, boid_direction_normalized)
-            angle = np.arccos(np.clip(dot_product, -1.0, 1.0))
+        Dłuższy bok prostokąta jest ustawiony na boki boida.
+        """
 
-            # Sprawdź, czy kąt jest w preferowanym zakresie (do 150 stopni w każdą stronę od przodu)
-            return (angle > np.radians(30)) and (angle < np.radians(150))
+        # Jeśli boid nie ma prędkości, zwracamy pustą listę
+        if np.linalg.norm(boid._v) == 0:
+            return []
 
-        return [other_boid for other_boid in self.boids
-                if boid != other_boid and
-                np.linalg.norm(boid.pos - other_boid.pos) < boid.local_radius and
-                is_within_side_view(other_boid)]
+        # Normalizujemy kierunek prędkości
+        direction = boid._v / np.linalg.norm(boid._v)
+
+        # Obliczamy wektor prostopadły do kierunku ruchu (obrót o 90 stopni)
+        perpendicular = np.array([-direction[1], direction[0]])
+
+        # Wymiary prostokąta (można dostosować)
+        half_width = boid.local_radius  # Dłuższy bok (szerokość)
+        half_height = boid.local_radius / 2    # Krótszy bok (wysokość)
+
+        local_boids = []
+
+        for other_boid in self.boids:
+            if boid == other_boid:
+                continue
+
+            # Wektor do innego boida
+            to_other = other_boid._pos - boid._pos
+
+            # Rzutujemy wektor to_other na kierunek prędkości i kierunek prostopadły
+            forward_dist = np.dot(to_other, direction)  # Odległość wzdłuż kierunku ruchu
+            side_dist = np.dot(to_other, perpendicular)  # Odległość na boki
+
+            # Sprawdzamy, czy boid mieści się w prostokącie
+            if abs(side_dist) <= half_width and abs(forward_dist) <= half_height:
+                local_boids.append(other_boid)
+
+        return local_boids
+
+
 class Boid(PhysicsObject):
 
     @property
@@ -102,24 +129,50 @@ class Boid(PhysicsObject):
         self._v = v
 
     def draw(self, win):
-        # Kierunek prędkości używany do obliczenia orientacji
+        # Pobieranie lokalnych boidów
+        local_boids = self.flock.get_local_boids(self)
+
+        # Rysowanie linii do lokalnych boidów
+        for other_boid in local_boids:
+            pygame.draw.line(win, (255, 255, 255), self.pos.astype(int), other_boid.pos.astype(int), 1)
+
+        # Jeśli boid nie porusza się, domyślny kierunek
         if np.linalg.norm(self.v) > 0:
             direction = self.v / np.linalg.norm(self.v)
         else:
-            direction = np.array([1, 0])  # Domyślny kierunek, gdy prędkość jest zerowa
+            direction = np.array([1, 0])
 
+        # Wektor prostopadły (do boków)
+        perpendicular = np.array([-direction[1], direction[0]])
+
+        # Rozmiary prostokąta komunikacyjnego
+        half_width = self.local_radius * 2  # Dłuższy bok – szerokość prostokąta
+        half_height = self.local_radius   # Krótszy bok – wysokość prostokąta
+
+        # Obliczanie narożników prostokąta
+        corner1 = self.pos + half_width * perpendicular + half_height * direction
+        corner2 = self.pos - half_width * perpendicular + half_height * direction
+        corner3 = self.pos - half_width * perpendicular - half_height * direction
+        corner4 = self.pos + half_width * perpendicular - half_height * direction
+
+        # # Rysowanie białego prostokąta
+        # pygame.draw.polygon(win, (255, 255, 255),
+        #                     [corner1.astype(int), corner2.astype(int), corner3.astype(int), corner4.astype(int)],
+        #                     1)
+
+        # Rysowanie samego boida jako trójkąt
         direction *= self.size
         perpendicular_direction = np.cross(np.array([*direction, 0]), np.array([0, 0, 1]))[:2]
 
         points = [
-            0.5 * direction + self.pos,
-            -0.5 * direction + 0.25 * perpendicular_direction + self.pos,
-            -0.25 * direction + self.pos,
-            -0.5 * direction - 0.25 * perpendicular_direction + self.pos,
+            (0.5 * direction + self.pos).astype(int),
+            (-0.5 * direction + 0.25 * perpendicular_direction + self.pos).astype(int),
+            (-0.25 * direction + self.pos).astype(int),
+            (-0.5 * direction - 0.25 * perpendicular_direction + self.pos).astype(int),
         ]
-        # Konwersja punktów na int przed rysowaniem
-        int_points = [(int(x), int(y)) for x, y in points]
-        pygame.draw.polygon(win, self.colour, int_points)
+
+        pygame.gfxdraw.aapolygon(win, points, self.colour)
+        pygame.gfxdraw.filled_polygon(win, points, self.colour)
 
     def update_physics(self, actions: List[EntityAction], time_elapsed):
 

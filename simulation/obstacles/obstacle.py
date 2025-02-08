@@ -1,5 +1,6 @@
 import numpy as np
 import pygame
+import pygame.gfxdraw
 
 class Obstacle:
     def __init__(self, x, y, color):
@@ -8,11 +9,12 @@ class Obstacle:
         self.color = color
 
 class RectangleObstacle(Obstacle):
-    def __init__(self, x, y, width, height, color):
+    def __init__(self, x, y, width, height, color, border_color=(0, 0, 0)):
         super().__init__(x, y, color)
         self.width = width
         self.height = height
         self.center = np.array([x + width / 2, y + height / 2])
+        self.border_color = border_color  # Kolor obramowania
 
     def contains(self, pos):
         return self.x <= pos[0] <= self.x + self.width and self.y <= pos[1] <= self.y + self.height
@@ -23,13 +25,17 @@ class RectangleObstacle(Obstacle):
         return np.array([closest_x, closest_y])
 
     def draw(self, win):
-        pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.height))
+        # Rysowanie obramowania
+        pygame.draw.rect(win, self.border_color, (self.x - 2, self.y - 2, self.width + 4, self.height + 4), border_radius=5)
+        # Rysowanie głównego prostokąta
+        pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.height), border_radius=5)
 
 class CircleObstacle(Obstacle):
-    def __init__(self, x, y, radius, color):
+    def __init__(self, x, y, radius, color, border_color=(0, 0, 0)):
         super().__init__(x, y, color)
         self.radius = radius
         self.center = np.array([x, y])
+        self.border_color = border_color  # Kolor obramowania
 
     def contains(self, pos):
         return np.linalg.norm(pos - self.center) <= self.radius
@@ -41,13 +47,16 @@ class CircleObstacle(Obstacle):
         return self.center + direction / np.linalg.norm(direction) * self.radius
 
     def draw(self, surface):
-        pygame.draw.circle(surface, self.color, (self.x, self.y), self.radius)
+        # Antyaliasing (wygładzanie krawędzi)
+        pygame.gfxdraw.aacircle(surface, self.x, self.y, self.radius + 2, self.border_color)
+        pygame.gfxdraw.filled_circle(surface, self.x, self.y, self.radius, self.color)
 
 class PolygonObstacle(Obstacle):
-    def __init__(self, points, color):
+    def __init__(self, points, color, border_color=(0, 0, 0)):
         super().__init__(0, 0, color)
         self.points = np.array(points)
         self.center = np.mean(self.points, axis=0)
+        self.border_color = border_color  # Kolor obramowania
 
     def contains(self, pos):
         n = len(self.points)
@@ -90,3 +99,8 @@ class PolygonObstacle(Obstacle):
 
     def draw(self, surface):
         pygame.draw.polygon(surface, self.color, self.points)
+
+    # def draw(self, surface):
+    #     # Rysowanie obramowania
+    #     pygame.gfxdraw.aapolygon(surface, self.points.astype(int), self.border_color)
+    #     pygame.gfxdraw.filled_polygon(surface, self.points.astype(int), self.color)
