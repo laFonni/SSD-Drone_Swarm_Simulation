@@ -3,7 +3,7 @@ from simulation.config import constants
 
 
 class Human:
-    def __init__(self, x, y, size=4, color=constants.RED):
+    def __init__(self, x, y, size=5, color=constants.RED):
         self.x = x
         self.y = y
         self.size = size

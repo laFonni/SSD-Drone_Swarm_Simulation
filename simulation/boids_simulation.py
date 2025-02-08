@@ -201,7 +201,7 @@ def main():
 
         pygame.display.set_caption("Boid Simulation")
         win = pygame.display.set_mode((game_settings.window_width, game_settings.window_height))
-        fill_colour = (0, 0, 0)
+        fill_colour = (204,204,204)
         light_gray = (200, 200, 200)
 
         human_positions = [(random.randint(0, win.get_width()), random.randint(0, win.get_height())) for _ in range(n_humans)]
@@ -243,7 +243,7 @@ def main():
             return obstacles
 
         obstacles = generate_circle_obstacles(
-            game_settings.map_width, game_settings.map_height, num_obstacles=20, min_radius=10, max_radius=20, color=(119, 49, 9)
+            game_settings.map_width, game_settings.map_height, num_obstacles=70, min_radius=10, max_radius=20, color=(119, 49, 9)
         )
 
         
@@ -261,8 +261,8 @@ def main():
         flock = BoidFlock(game_settings)
         flock_rules: List[BoidRule] = [
             # CohesionRule(weighting=0.1, game_settings=game_settings),
-            AlignmentRule(weighting=1, game_settings=game_settings),
-            SimpleSeparationRule(weighting=0.2, game_settings=game_settings, push_force=boid_fear),
+            AlignmentRule(weighting=0.9, game_settings=game_settings),
+            SimpleSeparationRule(weighting=0.4, game_settings=game_settings, push_force=boid_fear),
             AvoidWallsRule(weighting=1.5, game_settings=game_settings, push_force=100),
             # SideBySideFormationRule(weighting=0.3, game_settings=game_settings, spacing=50, noise_factor=0.1),
             AvoidObstaclesRule(weighting=1.5, game_settings=game_settings, obstacles=obstacles, push_force=100),
@@ -312,14 +312,18 @@ def main():
         while game_settings.is_running:
             win.fill(fill_colour)
 
+            # print(list(sim_map.sectors))
             for sector in list(chain(*sim_map.sectors)):
+
                 for boid in entities:
                     if sector.contains_point(boid.pos):
                         sector.mark_searched()
 
-
+            time_since_last_tick = pygame.time.get_ticks() - last_tick
             sim_map.draw(win)
-            sim_map.update_attractiveness()
+
+            # if (pygame.time.get_ticks() - simulation_start_time) > (simulation_time * 1000) / 4 * 3:
+            #     sim_map.update_attractiveness()
 
             for obstacle in obstacles:
                 obstacle.draw(win)
@@ -332,7 +336,7 @@ def main():
 
 
 
-            time_since_last_tick = pygame.time.get_ticks() - last_tick
+
             if time_since_last_tick < tick_length:
                 pygame.time.delay(tick_length - time_since_last_tick)
 

@@ -91,7 +91,7 @@ class Boid(PhysicsObject):
     def pos(self):
         return self._pos
 
-    def __init__(self, *args, flock: BoidFlock, position, colour=None, rules=None, size=10, local_radius=200, max_velocity=30,
+    def __init__(self, *args, flock: BoidFlock, position, colour=None, rules=None, size=15, local_radius=200, max_velocity=30,
                  speed=20, **kwargs):
         super().__init__(*args, **kwargs)
         logging.debug(f"Inicjalizacja Boid: {kwargs}")
@@ -129,46 +129,43 @@ class Boid(PhysicsObject):
         self._v = v
 
     def draw(self, win):
-        # Pobieranie lokalnych boidów
-        local_boids = self.flock.get_local_boids(self)
-
-        # Rysowanie linii do lokalnych boidów
-        for other_boid in local_boids:
-            pygame.draw.line(win, (255, 255, 255), self.pos.astype(int), other_boid.pos.astype(int), 1)
-
         # Jeśli boid nie porusza się, domyślny kierunek
         if np.linalg.norm(self.v) > 0:
             direction = self.v / np.linalg.norm(self.v)
         else:
             direction = np.array([1, 0])
 
-        # Wektor prostopadły (do boków)
-        perpendicular = np.array([-direction[1], direction[0]])
-
-        # Rozmiary prostokąta komunikacyjnego
-        half_width = self.local_radius * 2  # Dłuższy bok – szerokość prostokąta
-        half_height = self.local_radius   # Krótszy bok – wysokość prostokąta
-
-        # Obliczanie narożników prostokąta
-        corner1 = self.pos + half_width * perpendicular + half_height * direction
-        corner2 = self.pos - half_width * perpendicular + half_height * direction
-        corner3 = self.pos - half_width * perpendicular - half_height * direction
-        corner4 = self.pos + half_width * perpendicular - half_height * direction
-
-        # # Rysowanie białego prostokąta
-        # pygame.draw.polygon(win, (255, 255, 255),
-        #                     [corner1.astype(int), corner2.astype(int), corner3.astype(int), corner4.astype(int)],
-        #                     1)
-
-        # Rysowanie samego boida jako trójkąt
-        direction *= self.size
+        # Wektor prostopadły
         perpendicular_direction = np.cross(np.array([*direction, 0]), np.array([0, 0, 1]))[:2]
 
+        # **Obwódka** - nieco większa wersja trójkąta (ciemniejszy kolor)
+        outline_scale = 1.15  # Mniejsze powiększenie, by nie zasłaniać boida
+        outline_color = (max(self.colour[0] - 30, 0),
+                         max(self.colour[1] - 30, 0),
+                         max(self.colour[2] - 30, 0))  # Delikatnie ciemniejsza wersja koloru boida
+
+
+        outline_points = [
+            (0.25 * direction * self.size * outline_scale + self.pos).astype(int),
+            (
+                        -0.5 * direction * self.size * outline_scale + 3 * perpendicular_direction * outline_scale + self.pos).astype(
+                int),
+            (-0.25 * direction * self.size * outline_scale + self.pos).astype(int),
+            (
+                        -0.5 * direction * self.size * outline_scale - 3 * perpendicular_direction * outline_scale + self.pos).astype(
+                int),
+        ]
+
+        pygame.gfxdraw.filled_polygon(win, outline_points, outline_color)
+        pygame.gfxdraw.aapolygon(win, outline_points, outline_color)  # Wygładzenie krawędzi obwódki
+
+        # **Właściwy boid** - trójkąt w kolorze podstawowym
+        direction *= self.size
         points = [
-            (0.5 * direction + self.pos).astype(int),
-            (-0.5 * direction + 0.25 * perpendicular_direction + self.pos).astype(int),
+            (0.25 * direction + self.pos).astype(int),
+            (-0.5 * direction + 3 * perpendicular_direction + self.pos).astype(int),
             (-0.25 * direction + self.pos).astype(int),
-            (-0.5 * direction - 0.25 * perpendicular_direction + self.pos).astype(int),
+            (-0.5 * direction - 3 * perpendicular_direction + self.pos).astype(int),
         ]
 
         pygame.gfxdraw.aapolygon(win, points, self.colour)
@@ -187,7 +184,7 @@ class Boid(PhysicsObject):
 
         logging.debug(f"Aktualizacja fizyki Boid na pozycji {self._pos} z prędkością {self._v}")
 
-        # TODO: Game clock
+
 
     def get_debug_text(self):
         return super().get_debug_text() + f", n={self.n_neighbours}"

@@ -38,6 +38,10 @@ class Map:
                 sector.draw(screen)
 
     def update_attractiveness(self):
-        for row in self.sectors:
-            for sector in row:
-                sector.calculate_attractiveness()
+        """
+        Aktualizuje atrakcyjność sektorów i usuwa sprawdzone sektory.
+        """
+        self.sectors = [sector for sector in self.sectors if not sector.searched]  # Usuwamy sprawdzone sektory
+
+        for sector in self.sectors:
+            sector.calculate_attractiveness()

@@ -24,7 +24,7 @@ class Sector:
 
     def add_neighbor(self, neighbor):
         self.neighbors.append(neighbor)
-    
+
     def calculate_attractiveness(self):
         neighbor_contribution = ALPHA * sum(
             (1 / (1 + np.linalg.norm(np.array([self.row, self.col]) - np.array([neighbor.row, neighbor.col])))) * (1 if not neighbor.searched else 0)
@@ -34,7 +34,7 @@ class Sector:
         self.attractiveness = neighbor_contribution - penalty
 
     def draw(self, screen):
-        color = (0, 0, 0) if self.searched else GRAY
+        color = (204,204,204) if self.searched else (193,193,193)
         pygame.draw.rect(
             screen,
             color,
