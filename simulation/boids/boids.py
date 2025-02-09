@@ -59,7 +59,7 @@ class BoidFlock:
 
         # Wymiary prostokąta (można dostosować)
         half_width = boid.local_radius  # Dłuższy bok (szerokość)
-        half_height = boid.local_radius / 2    # Krótszy bok (wysokość)
+        half_height = boid.local_radius / 3    # Krótszy bok (wysokość)
 
         local_boids = []
 
@@ -91,18 +91,18 @@ class Boid(PhysicsObject):
     def pos(self):
         return self._pos
 
-    def __init__(self, *args, flock: BoidFlock, position, colour=None, rules=None, size=15, local_radius=200, max_velocity=30,
+    def __init__(self, *args, flock: BoidFlock, position, color=None, rules=None, size=15, local_radius=200, max_velocity=30,
                  speed=20, **kwargs):
         super().__init__(*args, **kwargs)
         logging.debug(f"Inicjalizacja Boid: {kwargs}")
 
-        if colour is None:
-            colour = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+        if color is None:
+            color = (random.randint(0, 220), random.randint(0, 220), random.randint(0, 220))
 
         if rules is None:
             rules = list()
 
-        self.colour = colour
+        self.color = color
         self.flock = flock
         self.size = size
         self._pos = np.array(position, dtype=np.float64)
@@ -129,6 +129,16 @@ class Boid(PhysicsObject):
         self._v = v
 
     def draw(self, win):
+
+        local_boids = self.flock.get_local_boids(self)
+
+        for other_boid in local_boids:
+            if id(self) < id(other_boid):  # Zapobiega podwójnemu rysowaniu tej samej linii
+                pygame.gfxdraw.line(win,
+                                    int(self.pos[0]), int(self.pos[1]),
+                                    int(other_boid.pos[0]), int(other_boid.pos[1]),
+                                    (20, 20, 20))
+
         # Jeśli boid nie porusza się, domyślny kierunek
         if np.linalg.norm(self.v) > 0:
             direction = self.v / np.linalg.norm(self.v)
@@ -140,9 +150,9 @@ class Boid(PhysicsObject):
 
         # **Obwódka** - nieco większa wersja trójkąta (ciemniejszy kolor)
         outline_scale = 1.15  # Mniejsze powiększenie, by nie zasłaniać boida
-        outline_color = (max(self.colour[0] - 30, 0),
-                         max(self.colour[1] - 30, 0),
-                         max(self.colour[2] - 30, 0))  # Delikatnie ciemniejsza wersja koloru boida
+        outline_color = (max(self.color[0] - 60, 0),
+                         max(self.color[1] - 60, 0),
+                         max(self.color[2] - 60, 0))  # Delikatnie ciemniejsza wersja koloru boida
 
 
         outline_points = [
@@ -168,8 +178,8 @@ class Boid(PhysicsObject):
             (-0.5 * direction - 3 * perpendicular_direction + self.pos).astype(int),
         ]
 
-        pygame.gfxdraw.aapolygon(win, points, self.colour)
-        pygame.gfxdraw.filled_polygon(win, points, self.colour)
+        pygame.gfxdraw.aapolygon(win, points, self.color)
+        pygame.gfxdraw.filled_polygon(win, points, self.color)
 
     def update_physics(self, actions: List[EntityAction], time_elapsed):
 
@@ -228,7 +238,7 @@ class BoidRule(ABC):
 
 
 class SimpleSeparationRule(BoidRule):
-    def __init__(self, *args, push_force=5, random_movement_factor=0.1, **kwargs):
+    def __init__(self, *args, push_force=3, random_movement_factor=0.1, **kwargs):
         super().__init__(*args, **kwargs)
         self.push_force = push_force
         self.random_movement_factor = random_movement_factor  # dodatkowy parametr do sterowania losowym ruchem

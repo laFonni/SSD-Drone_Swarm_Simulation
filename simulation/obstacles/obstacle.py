@@ -30,12 +30,17 @@ class RectangleObstacle(Obstacle):
         # Rysowanie głównego prostokąta
         pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.height), border_radius=5)
 
-class CircleObstacle(Obstacle):
-    def __init__(self, x, y, radius, color, border_color=(0, 0, 0)):
-        super().__init__(x, y, color)
+
+class CircleObstacle:
+    def __init__(self, x, y, radius, color):
+        self.x = x
+        self.y = y
         self.radius = radius
+        self.color = color
+        self.border_color = (max(self.color[0] - 40, 0),
+                             max(self.color[1] - 40, 0),
+                             max(self.color[2] - 40, 0))
         self.center = np.array([x, y])
-        self.border_color = border_color  # Kolor obramowania
 
     def contains(self, pos):
         return np.linalg.norm(pos - self.center) <= self.radius
@@ -47,9 +52,14 @@ class CircleObstacle(Obstacle):
         return self.center + direction / np.linalg.norm(direction) * self.radius
 
     def draw(self, surface):
-        # Antyaliasing (wygładzanie krawędzi)
-        pygame.gfxdraw.aacircle(surface, self.x, self.y, self.radius + 2, self.border_color)
+        # Rysowanie obwódki (nieco większy okrąg w kolorze obramowania)
+        pygame.gfxdraw.filled_circle(surface, self.x, self.y, self.radius + 2, self.border_color)
+
+        # Rysowanie wypełnienia
         pygame.gfxdraw.filled_circle(surface, self.x, self.y, self.radius, self.color)
+
+        # Dodatkowe wygładzanie krawędzi
+        pygame.gfxdraw.aacircle(surface, self.x, self.y, self.radius, self.border_color)
 
 class PolygonObstacle(Obstacle):
     def __init__(self, points, color, border_color=(0, 0, 0)):

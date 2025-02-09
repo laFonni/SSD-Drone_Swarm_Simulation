@@ -39,8 +39,8 @@ def parameter_selection_screen():
         "boid_radius": 50,
         "boid_max_speed": 100,
         "simulation_time": 40,
-        "rows" : 0,
-        "columns" : 0
+        # "rows" : 10,
+        # "columns" : 10
     }
 
     input_boxes = {
@@ -193,8 +193,8 @@ def main():
         boid_radius = parameters["boid_radius"]
         boid_max_speed = parameters["boid_max_speed"]
         simulation_time = parameters["simulation_time"]
-        rows = parameters["rows"]
-        columns = parameters["columns"]
+        # rows = parameters["rows"]
+        # columns = parameters["columns"]
 
         game_settings = GameSettings()
         # game_settings.debug = True
@@ -210,7 +210,7 @@ def main():
         max_width = win.get_width()
         max_height = win.get_height()
 
-        sim_map = Map(max_width, max_height, rows, columns)
+        sim_map = Map(max_width, max_height, rows = 0, columns = 0)
 
         rect1 = RectangleObstacle(random.randint(0, max_width), random.randint(0, max_height), 300, 100, light_gray)
         rect2 = RectangleObstacle(random.randint(0, max_width), random.randint(0, max_height), 100, 300, light_gray)
@@ -243,7 +243,7 @@ def main():
             return obstacles
 
         obstacles = generate_circle_obstacles(
-            game_settings.map_width, game_settings.map_height, num_obstacles=70, min_radius=10, max_radius=20, color=(119, 49, 9)
+            game_settings.map_width, game_settings.map_height, num_obstacles=30, min_radius=10, max_radius=20, color=(119, 49, 9)
         )
 
         
@@ -260,9 +260,9 @@ def main():
 
         flock = BoidFlock(game_settings)
         flock_rules: List[BoidRule] = [
-            # CohesionRule(weighting=0.1, game_settings=game_settings),
+            CohesionRule(weighting=0.3, game_settings=game_settings),
             AlignmentRule(weighting=0.9, game_settings=game_settings),
-            SimpleSeparationRule(weighting=0.4, game_settings=game_settings, push_force=boid_fear),
+            SimpleSeparationRule(weighting=0.5, game_settings=game_settings, push_force=boid_fear),
             AvoidWallsRule(weighting=1.5, game_settings=game_settings, push_force=100),
             # SideBySideFormationRule(weighting=0.3, game_settings=game_settings, spacing=50, noise_factor=0.1),
             AvoidObstaclesRule(weighting=1.5, game_settings=game_settings, obstacles=obstacles, push_force=100),
@@ -333,9 +333,6 @@ def main():
 
             for i in range(len(humans)):
                 Human.draw(humans[i], win)
-
-
-
 
             if time_since_last_tick < tick_length:
                 pygame.time.delay(tick_length - time_since_last_tick)

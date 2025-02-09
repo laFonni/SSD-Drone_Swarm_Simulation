@@ -22,7 +22,7 @@ class Entity(ABC):
             controls = {}
 
         self._pos = pos
-        self.colour = colour
+        self.color = colour
         self.controls = controls
         self.game_settings: GameSettings = game_settings
 
@@ -88,7 +88,7 @@ class CharacterEntity(Entity):
         self.v = v
 
     def draw(self, win):
-        pygame.draw.circle(win, self.colour, (int(self.pos[0]), int(self.pos[1])), self.width)
+        pygame.draw.circle(win, self.color, (int(self.pos[0]), int(self.pos[1])), self.width)
 
     def update_physics(self, actions: List[EntityAction], time_elapsed):
         for action in actions:
